@@ -1,8 +1,163 @@
 import Head from 'next/head'
 import Image from 'next/image'
+import { useState } from 'react'
+import CustomButton from '../components/CustomButton'
+import { authenticate, generateChallenge } from '../components/utils/LensProtocol/login'
 import styles from '../styles/Home.module.css'
+import { ethers } from 'ethers'
+import { createProfile, getProfile } from '../components/utils/LensProtocol/profile'
+import ProfileData from '../components/ProfileData'
+import * as React from 'react';
+import Modal from '@mui/material/Modal';
+import { Button, Card, IconButton, Stack, TextField, Snackbar } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close';
 
-export default function Home() {
+
+const style = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 400,
+  bgcolor: 'background.paper',
+  border: '2px solid #000',
+  boxShadow: 24,
+  p: 4,
+};
+
+export default function Home () {
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+  const [address, setAddress] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [handle, setHandle] = useState(null)
+
+  const connectWallet = async () => {
+    try {
+      const { ethereum } = window;
+
+      if (!ethereum) {
+        return;
+      }
+
+      const accounts = await ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      console.log("Connected", accounts[0]);
+      setAddress(accounts[0]);
+      sessionStorage.setItem("address", accounts[0]);
+      await signInWithLens(accounts[0]);
+
+      const profile = await getProfile(accounts[0]);
+      console.log("profile", profile);
+      if (profile) {
+        setProfile(profile);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const setAuthenticationToken = (authenticate) => {
+    const { accessToken, refreshToken } = authenticate;
+    sessionStorage.setItem("lens-access-token", accessToken);
+    sessionStorage.setItem("lens-refresh-token", refreshToken);
+  };
+
+  const signInWithLens = async (address) => {
+    try {
+      const { ethereum } = window;
+      const challengeResponse = await generateChallenge(address);
+      console.log(challengeResponse);
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      const signer = provider.getSigner();
+      const signature = await signer.signMessage(
+        challengeResponse.data.challenge.text
+      );
+      console.log("--isSignstring", signature);
+      const accessTokens = await authenticate(address, signature);
+      console.dir(accessTokens, { depth: null });
+      setAuthenticationToken(accessTokens.data.authenticate);
+    } catch (err) {
+      console.log(err);
+      location.reload()
+    }
+  };
+
+  const createLensProfile = async () => {
+    try {
+      const request = {
+        handle,
+        profilePictureUri: null,
+        followNFTURI: null,
+        followModule: null,
+      };
+
+      const createProfileResponse = await createProfile(request);
+      console.log("createProfileResponse", createProfileResponse);
+      if (createProfileResponse.data.createProfile.__typename !== 'RelayError') {
+        setSnackBarMessage('Profile created successfully. Please refresh the page.')
+        handleSnackBarClick()
+        setTimeout(async () => {
+          const profile = await getLensProfile();
+          console.log("profile", profile);
+          if (profile) {
+            setProfile(profile);
+            setLensProfileId(profile.id);
+          }
+          handleClose()
+        }, 1500)
+
+      } else {
+        if (createProfileResponse.data.createProfile.reason === 'HANDLE_TAKEN')
+          setSnackBarMessage('Handle already taken')
+        else
+          setSnackBarMessage('Something went wrong. Check console')
+        handleSnackBarClick()
+      }
+    } catch (error) {
+      console.log("error in create profile", error);
+    } finally {
+      setLoading(false)
+    }
+  };
+
+  const getLensProfile = async () => {
+    const profile = await getProfile(address);
+    return profile;
+  };
+
+  const [snackBarOpen, setSnackBarOpen] = useState(false);
+  const [snackBarMessage, setSnackBarMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSnackBarClick = () => {
+    setSnackBarOpen(true);
+  };
+
+  const handleSnackBarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setSnackBarOpen(false);
+  };
+
+  const action = (
+    <React.Fragment>
+      <IconButton
+        size="small"
+        aria-label="close"
+        color="inherit"
+        onClick={handleSnackBarClose}
+      >
+        <CloseIcon fontSize="small" />
+
+      </IconButton>
+    </React.Fragment>
+  );
+
   return (
     <div className={styles.container}>
       <Head>
@@ -10,48 +165,35 @@ export default function Home() {
         <meta name="description" content="Generated by create next app" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-
+      <Snackbar
+        open={snackBarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackBarClose}
+        message={snackBarMessage}
+        action={action}
+      />
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Card sx={style}>
+          <Stack spacing={2}>
+            <TextField
+              fullWidth
+              placeholder="Enter your New Lens Handle"
+              onChange={(e) => {
+                setHandle(e.target.value);
+              }}
+            />
+            <CustomButton onClick={createLensProfile} text={'Submit'}></CustomButton>
+          </Stack>
+        </Card>
+      </Modal>
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+        {address === null ? <CustomButton onClick={connectWallet} text={'Connect Wallet'} icon={'wallet'} /> :
+          profile === null ? <CustomButton onClick={handleOpen} text={'Create Profile'} /> : <ProfileData profile={profile} />}
       </main>
 
       <footer className={styles.footer}>
