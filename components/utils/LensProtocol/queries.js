@@ -116,4 +116,34 @@ export const CREATE_PROFILE = `
             __typename
     }
  }
-`
+`;
+export const ENABLE_DISPATCHER_MUTATION = `
+mutation CreateSetDispatcherTypedData($id:ProfileId!) {
+  createSetDispatcherTypedData(request:{
+    profileId: $id
+  }) {
+    id
+    expiresAt
+    typedData {
+      types {
+        SetDispatcherWithSig {
+          name
+          type
+        }
+      }
+      domain {
+        name
+        chainId
+        version
+        verifyingContract
+      }
+      value {
+        nonce
+        deadline
+        profileId
+        dispatcher
+      }
+    }
+  }
+}
+`;
