@@ -1,3 +1,4 @@
+"use client"
 import '../styles/globals.css'
 
 function MyApp({ Component, pageProps }) {

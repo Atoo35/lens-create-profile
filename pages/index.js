@@ -1,37 +1,49 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import { useState } from 'react'
-import CustomButton from '../components/CustomButton'
-import { authenticate, generateChallenge } from '../components/utils/LensProtocol/login'
-import styles from '../styles/Home.module.css'
-import { ethers } from 'ethers'
-import { createProfile, getProfile } from '../components/utils/LensProtocol/profile'
-import ProfileData from '../components/ProfileData'
-import * as React from 'react';
-import Modal from '@mui/material/Modal';
-import { Button, Card, IconButton, Stack, TextField, Snackbar } from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close';
-
+"use client";
+import Head from "next/head";
+import { useState } from "react";
+import CustomButton from "../components/CustomButton";
+import {
+  authenticate,
+  generateChallenge,
+} from "../components/utils/LensProtocol/login";
+import styles from "../styles/Home.module.css";
+import { ethers } from "ethers";
+import {
+  createProfile,
+  getProfile,
+} from "../components/utils/LensProtocol/profile";
+import ProfileData from "../components/ProfileData";
+import * as React from "react";
+import Modal from "@mui/material/Modal";
+import {
+  Button,
+  Card,
+  IconButton,
+  Stack,
+  TextField,
+  Snackbar,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 const style = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
   width: 400,
-  bgcolor: 'background.paper',
-  border: '2px solid #000',
+  bgcolor: "background.paper",
+  border: "2px solid #000",
   boxShadow: 24,
   p: 4,
 };
 
-export default function Home () {
+export default function Home() {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-  const [address, setAddress] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [handle, setHandle] = useState(null)
+  const [address, setAddress] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [handle, setHandle] = useState(null);
 
   const connectWallet = async () => {
     try {
@@ -81,7 +93,7 @@ export default function Home () {
       setAuthenticationToken(accessTokens.data.authenticate);
     } catch (err) {
       console.log(err);
-      location.reload()
+      location.reload();
     }
   };
 
@@ -96,30 +108,31 @@ export default function Home () {
 
       const createProfileResponse = await createProfile(request);
       console.log("createProfileResponse", createProfileResponse);
-      if (createProfileResponse.data.createProfile.__typename !== 'RelayError') {
-        setSnackBarMessage('Profile created successfully. Please refresh the page.')
-        handleSnackBarClick()
+      if (
+        createProfileResponse.data.createProfile.__typename !== "RelayError"
+      ) {
+        setSnackBarMessage(
+          "Profile created successfully. Please refresh the page."
+        );
+        handleSnackBarClick();
         setTimeout(async () => {
           const profile = await getLensProfile();
           console.log("profile", profile);
           if (profile) {
             setProfile(profile);
-            setLensProfileId(profile.id);
           }
-          handleClose()
-        }, 1500)
-
+          handleClose();
+        }, 1500);
       } else {
-        if (createProfileResponse.data.createProfile.reason === 'HANDLE_TAKEN')
-          setSnackBarMessage('Handle already taken')
-        else
-          setSnackBarMessage('Something went wrong. Check console')
-        handleSnackBarClick()
+        if (createProfileResponse.data.createProfile.reason === "HANDLE_TAKEN")
+          setSnackBarMessage("Handle already taken");
+        else setSnackBarMessage("Something went wrong. Check console");
+        handleSnackBarClick();
       }
     } catch (error) {
       console.log("error in create profile", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
@@ -129,7 +142,7 @@ export default function Home () {
   };
 
   const [snackBarOpen, setSnackBarOpen] = useState(false);
-  const [snackBarMessage, setSnackBarMessage] = useState('');
+  const [snackBarMessage, setSnackBarMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSnackBarClick = () => {
@@ -137,7 +150,7 @@ export default function Home () {
   };
 
   const handleSnackBarClose = (event, reason) => {
-    if (reason === 'clickaway') {
+    if (reason === "clickaway") {
       return;
     }
 
@@ -153,7 +166,6 @@ export default function Home () {
         onClick={handleSnackBarClose}
       >
         <CloseIcon fontSize="small" />
-
       </IconButton>
     </React.Fragment>
   );
@@ -161,7 +173,7 @@ export default function Home () {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Create Next App</title>
+        <title>Testnet .lens create proifle</title>
         <meta name="description" content="Generated by create next app" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -187,27 +199,26 @@ export default function Home () {
                 setHandle(e.target.value);
               }}
             />
-            <CustomButton onClick={createLensProfile} text={'Submit'}></CustomButton>
+            <CustomButton
+              onClick={createLensProfile}
+              text={"Submit"}
+            ></CustomButton>
           </Stack>
         </Card>
       </Modal>
       <main className={styles.main}>
-        {address === null ? <CustomButton onClick={connectWallet} text={'Connect Wallet'} icon={'wallet'} /> :
-          profile === null ? <CustomButton onClick={handleOpen} text={'Create Profile'} /> : <ProfileData profile={profile} />}
+        {address === null ? (
+          <CustomButton
+            onClick={connectWallet}
+            text={"Connect Wallet"}
+            icon={"wallet"}
+          />
+        ) : profile === null ? (
+          <CustomButton onClick={handleOpen} text={"Create Profile"} />
+        ) : (
+          <ProfileData profile={profile} />
+        )}
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
-  )
+  );
 }
